@@ -1,5 +1,5 @@
 function output = convolution(input, kernal_type, type, x_scale, y_scale)
-    kernal = get_kernal(input, kernal_type, type);
+    kernal = get_kernal(kernal_type, type);
     if kernal_type == "haar-like"
         kernal = expand_kernal(kernal, x_scale, y_scale);
     end

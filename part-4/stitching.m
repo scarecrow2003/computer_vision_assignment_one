@@ -13,9 +13,8 @@ function homography_matrix = stitching()
         0 0 0 o_points(3, 1) o_points(3, 2) 1 -t_points(3, 2)*o_points(3, 1) -t_points(3, 2)*o_points(3, 2) -t_points(3, 2);
         o_points(4, 1) o_points(4, 2) 1 0 0 0 -t_points(4, 1)*o_points(4, 1) -t_points(4, 1)*o_points(4, 2) -t_points(4, 1);
         0 0 0 o_points(4, 1) o_points(4, 2) 1 -t_points(4, 2)*o_points(4, 1) -t_points(4, 2)*o_points(4, 2) -t_points(4, 2)];
-    [U, S, V] = svd(a);
-    V_T = V';
-    homography_matrix = reshape(V_T(9, :), [3, 3]);
+    [~, ~, V] = svd(a);
+    homography_matrix = reshape(V(:, 9), [3, 3]);
     tform = maketform('projective', homography_matrix);
     [~, xdata, ydata] = imtransform(im02, tform);
     xbound = [min(1, xdata(1)), max(size(im01, 2), xdata(2))];

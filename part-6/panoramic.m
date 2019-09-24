@@ -1,4 +1,28 @@
-function [homography_2to1, homography_1to2, f1_inlier, f2_inlier] = ransac(f1, f2)
+function panoramic()
+    images = cell(1, 5);
+    for i=1:5
+        images{i} = imread(sprintf("im%02d.jpg", i));
+    end
+    current = images{1};
+    for i=2:5
+        current = stitch(current, images{i});
+    end
+    imshow(current);
+end
+
+function stitched = stitch(im01, im02)
+    im01gray = single(rgb2gray(im01));
+    im02gray = single(rgb2gray(im02));
+    [f1, d1] = vl_sift(im01gray);
+    [f2, d2] = vl_sift(im02gray);
+    [matches, ~] = vl_ubcmatch(d1, d2);
+    f1_match = f1(:, matches(1, :));
+    f2_match = f2(:, matches(2, :));
+    homography = ransac(f1_match, f2_match);
+    stitched = stitch_using_homography(im01, im02, homography);
+end
+
+function [homography, f1_inlier, f2_inlier] = ransac(f1, f2)
     total = size(f1, 2);
     iteration = 30;
     max_inlier = 0;
@@ -42,17 +66,22 @@ function [homography_2to1, homography_1to2, f1_inlier, f2_inlier] = ransac(f1, f
     f2_inlier = f2(:, inlier);
     
     A = zeros(max_inlier*2, 9);
-    B = zeros(max_inlier*2, 9);
     for i=1:max_inlier
         origin = f2_inlier(1:2, i);
         transformed = f1_inlier(1:2, i);
         A((i-1)*2+1:i*2, :) = [origin(1) origin(2) 1 0 0 0 -transformed(1)*origin(1) -transformed(1)*origin(2) -transformed(1);
             0 0 0 origin(1) origin(2) 1 -transformed(2)*origin(1) -transformed(2)*origin(2) -transformed(2)];
-        B((i-1)*2+1:i*2, :) = [transformed(1) transformed(2) 1 0 0 0 -origin(1)*transformed(1) -origin(1)*transformed(2) -origin(1);
-            0 0 0 transformed(1) transformed(2) 1 -origin(2)*transformed(1) -origin(2)*transformed(2) -origin(2)];
     end
     [~, ~, V] = svd(A);
-    homography_2to1 = reshape(V(:, 9), [3, 3]);
-    [~, ~, X] = svd(B);
-    homography_1to2 = reshape(X(:, 9), [3, 3]);
+    homography = reshape(V(:, 9), [3, 3]);
+end
+
+function stitched = stitch_using_homography(im01, im02, homography)
+    tform = maketform('projective', homography);
+    [~, xdata, ydata] = imtransform(im02, tform);
+    xbound = [min(1, xdata(1)), max(size(im01, 2), xdata(2))];
+    ybound = [min(1, ydata(1)), max(size(im01, 1), ydata(2))];
+    im01_transformed = imtransform(im01, maketform('affine',eye(3)), 'XData', xbound, 'YData', ybound);
+    im02_transformed = imtransform(im02, tform, 'XData', xbound, 'YData', ybound);
+    stitched = max(im01_transformed, im02_transformed);
 end

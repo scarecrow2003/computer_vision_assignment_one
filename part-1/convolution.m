@@ -1,17 +1,17 @@
-function output = convolution(input, kernal_type, type, x_scale, y_scale)
-    kernal = get_kernal(kernal_type, type);
-    if kernal_type == "haar-like"
-        kernal = expand_kernal(kernal, x_scale, y_scale);
+function output = convolution(input, kernel_type, type, x_scale, y_scale)
+    kernel = get_kernel(kernel_type, type);
+    if kernel_type == "haar-like"
+        kernel = expand_kernel(kernel, x_scale, y_scale);
     end
-    output_width = size(input, 2)-size(kernal, 2)+1;
-    output_height = size(input, 1)-size(kernal, 1)+1;
+    output_width = size(input, 2)-size(kernel, 2)+1;
+    output_height = size(input, 1)-size(kernel, 1)+1;
     output = zeros(output_height, output_width);
     for i=1:output_width
         for j=1:output_height
             sum = double(0);
-            for k=1:size(kernal, 2)
-                for l=1:size(kernal, 1)
-                    value = double(input(j+l-1, i+k-1)) * double(kernal(l, k));
+            for k=1:size(kernel, 2)
+                for l=1:size(kernel, 1)
+                    value = double(input(j+l-1, i+k-1)) * double(kernel(l, k));
                     sum = sum + value;
                 end
             end
@@ -20,40 +20,40 @@ function output = convolution(input, kernal_type, type, x_scale, y_scale)
     end
 end
 
-function kernal = get_kernal(kernal_type, type)
-    if kernal_type == "sobel"
-        kernal = [-1 0 1; -2 0 2; -1 0 1];
+function kernel = get_kernel(kernel_type, type)
+    if kernel_type == "sobel"
+        kernel = [-1 0 1; -2 0 2; -1 0 1];
         if type == 2
-            kernal = kernal';
+            kernel = kernel';
         end
-    elseif kernal_type == "gaussian"
-        kernal = [1 4 6 4 1; 4 16 24 16 4; 6 24 36 24 6; 4 16 24 16 4; 1 4 6 4 1] / 256;
-    elseif kernal_type == "haar-like"
+    elseif kernel_type == "gaussian"
+        kernel = [1 4 6 4 1; 4 16 24 16 4; 6 24 36 24 6; 4 16 24 16 4; 1 4 6 4 1] / 256;
+    elseif kernel_type == "haar-like"
         if type == 1
-            kernal = [-1; 1];
+            kernel = [-1; 1];
         elseif type == 2
-            kernal = [-1 1];
+            kernel = [-1 1];
         elseif type == 3
-            kernal = [1; -1; 1];
+            kernel = [1; -1; 1];
         elseif type == 4
-            kernal = [1 -1 1];
+            kernel = [1 -1 1];
         elseif type == 5
-            kernal = [-1 1; 1 -1];
+            kernel = [-1 1; 1 -1];
         end
     end
 end
 
-function result_kernal = expand_kernal(kernal, x_scale, y_scale)
+function result_kernel = expand_kernel(kernel, x_scale, y_scale)
     if x_scale > 1 || y_scale > 1
-        origin_size_x = size(kernal, 2);
-        origin_size_y = size(kernal, 1);
-        result_kernal = zeros(origin_size_y * y_scale, origin_size_x * x_scale);
+        origin_size_x = size(kernel, 2);
+        origin_size_y = size(kernel, 1);
+        result_kernel = zeros(origin_size_y * y_scale, origin_size_x * x_scale);
         for i=1:origin_size_x
             for j=1:origin_size_y
-                result_kernal((j-1) * y_scale + 1:j * y_scale, (i-1) * x_scale + 1:i * x_scale) = kernal(j, i);
+                result_kernel((j-1) * y_scale + 1:j * y_scale, (i-1) * x_scale + 1:i * x_scale) = kernel(j, i);
             end
         end
     else
-        result_kernal = kernal;
+        result_kernel = kernel;
     end
 end

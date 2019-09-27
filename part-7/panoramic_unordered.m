@@ -1,23 +1,86 @@
-function panoramic()
-    images_count = 6;
-    images = cell(1, images_count);
-    for i=1:images_count
-        images{i} = imread(sprintf("image%02d.jpg", i));
-    end
+function panoramic_unordered()
+    images = load_unordered_images();
+    images_count = size(images, 2);
+    [~, ~, matches] = extract_sift_and_matches(images);
+    images_order = get_images_order(matches);
     middle = ceil(images_count / 2);
-    current = images{middle};
+    current = images{images_order(middle)};
     for i=middle-1:-1:1
-        current = stitch(current, images{i});
+        current = stitch(current, images{images_order(i)});
         figure;
         imshow(current);
     end
     for i=middle+1:images_count
-        current = stitch(current, images{i});
+        current = stitch(current, images{images_order(i)});
         figure;
         imshow(current);
     end
     figure;
     imshow(current);
+end
+
+function images = load_unordered_images()
+    images_count = 6;
+    images = cell(1, images_count);
+    for i=1:images_count
+        images{i} = imread(sprintf("image%02d.jpg", i));
+    end
+    % shuffle the images to simulate unordered images
+    perm = randperm(images_count);
+    images = images(perm);
+end
+
+function [f, d, matches] = extract_sift_and_matches(images)
+    images_count = size(images, 2);
+    f = cell(1, images_count);
+    d = cell(1, images_count);
+    for i=1:images_count
+        [f{i}, d{i}] = vl_sift(single(rgb2gray(images{i})));
+    end
+    matches = cell(images_count, images_count);
+    for i=1:images_count-1
+        for j=i+1:images_count
+            [matches{i, j}, ~] = vl_ubcmatch(d{i}, d{j});
+        end
+    end
+end
+
+function images_order = get_images_order(matches)
+    images_count = size(matches, 2);
+    matches_count = zeros(images_count, images_count);
+    for i=1:images_count-1
+        for j=i+1:images_count
+            matches_count(i, j) = size(matches{i, j}, 2);
+            matches_count(j, i) = matches_count(i, j);
+        end
+    end
+    visited = zeros(1, images_count);
+    images_order = 1;
+    visited(1) = 1;
+    while sum(visited) < images_count
+        match_count = matches_count(images_order(1), :);
+        [~, index] = sort(match_count, 'descend');
+        for i=1:size(index, 2)
+            if match_count(index(i)) > 350
+                if visited(index(i)) == 0
+                    visited(index(i)) = 1;
+                    images_order = [index(i) images_order];
+                    break;
+                end
+            end
+        end
+        match_count = matches_count(images_order(end), :);
+        [~, index] = sort(match_count, 'descend');
+        for i=1:size(index, 2)
+            if match_count(index(i)) > 350
+                if visited(index(i)) == 0
+                    visited(index(i)) = 1;
+                    images_order = [images_order index(i)];
+                    break;
+                end
+            end
+        end
+    end
 end
 
 function stitched = stitch(im01, im02)
